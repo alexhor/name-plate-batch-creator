@@ -7,11 +7,15 @@ from kivy.uix.switch import Switch
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
+from kivy.event import EventDispatcher
 
 from gui.Button import BlueButton, GrayButton, LabelButton
 
-class ExportWidget(BoxLayout):
-    def __init__(self, **kwargs):
+class ExportWidget(BoxLayout, EventDispatcher):
+    def __init__(self, popup_size_hint=None, **kwargs):
+        self.register_event_type('on_saving_done')
+
+        self.popup_size_hint = popup_size_hint
         self._set_fixed_window_size()
         super().__init__(orientation='vertical', padding=40, spacing=50, **kwargs)
         self.pos_hint = {'top': 1, 'x': 0}
@@ -57,6 +61,10 @@ class ExportWidget(BoxLayout):
         self.add_widget(save_button_layout)
 
     def _set_fixed_window_size(self, size_x=600, size_y=180):
+        if None is not self.popup_size_hint:
+            size_x = (1 + (1 - self.popup_size_hint[0])*2) * size_x
+            size_y = (1 + (1 - self.popup_size_hint[1])*2) * size_y + 70
+            print(size_y)
         Window.size = (size_x, size_y)
         Window.minimum_width = size_x
         Window.minimum_height = size_y
@@ -127,6 +135,11 @@ class ExportWidget(BoxLayout):
         update_breadcrumbs()
         popup.open()
 
+    def on_saving_done(self):
+        # This placeholder method allows binding to saving_done event
+        pass
+
     def on_save(self, instance):
         print(f"File: {self.file_input.text}/{self.output_file_input.text}")
         print(f"Double Sided: {'ON' if self.switch.active else 'OFF'}")
+        self.dispatch('on_saving_done')
