@@ -1,21 +1,29 @@
+import os
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.stencilview import StencilView
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from kivy.uix.image import Image
-from kivy.uix.button import Button
 from kivy.uix.popup import Popup
+from kivy.properties import StringProperty
+from kivy.uix.filechooser import FileChooserIconView
 
 from gui.ExportWidget import ExportWidget
-from gui.Button import BlueButton
+from gui.Button import BlueButton, GrayButton, LabelButton
 from gui.Line import HorizontalLine
 
 
 class LayoutCreationWidget(BoxLayout):
+    panel_background_image = StringProperty("")
+
     def __init__(self, **kwargs):
         super().__init__(orientation='horizontal', spacing=10, padding=10, **kwargs)
+
+        self.bind(panel_background_image=self.update_panel_background_image)
         
         # Left Section: Loaded Names with ScrollView
         left_section = BoxLayout(orientation='vertical', size_hint=(0.3, 1), spacing=10)
@@ -27,8 +35,12 @@ class LayoutCreationWidget(BoxLayout):
         
         # Add placeholder sections to the list
         for i in range(1, 100):
-            section_label = Label(text=f'Section {i}', color="black", size_hint_y=None, height=50)
-            self.loaded_names_list.add_widget(section_label)
+            #TODO: add boxlayout instead and insert the label there followed by another boxlayout as horizontal spacer
+            section_label_wrapper = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
+            section_label = Label(text=f'Section {i}', color="black")
+            section_label_wrapper.add_widget(section_label)
+            section_label_wrapper.add_widget(BoxLayout())
+            self.loaded_names_list.add_widget(section_label_wrapper)
         
         scroll_view.add_widget(self.loaded_names_list)
         
@@ -44,26 +56,50 @@ class LayoutCreationWidget(BoxLayout):
         center_section = BoxLayout(orientation='vertical', size_hint=(0.7, 1), spacing=10)
         
         # Background Image Placeholder
-        background_image = Image(source='', size_hint=(1, 0.6), allow_stretch=True, keep_ratio=False)
+        preview_container_wrapper = ScrollView(size_hint=(1, 0.6))
+        preview_container = FloatLayout()
+        preview_container_wrapper.add_widget(preview_container)
+        self.panel_background_image_widget = Image(source=self.panel_background_image, size_hint=(None, None), size=(500, 500), pos_hint={'center_x': 0.5, 'center_y': 0.5}, allow_stretch=True, keep_ratio=True)
+        preview_container.add_widget(self.panel_background_image_widget)
         
         # Change Background Button
-        background_button_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40)
-        change_background_button = BlueButton(text='Change Background Image', size_hint=(None, None), size=(200, 40))
-        background_icon = Button(text='✎', size_hint=(None, None), size=(40, 40))
-        
+        background_button_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40, spacing=5)
+        background_button_layout.add_widget(BoxLayout())
+        change_background_button = GrayButton(text='Change Background Image', size_hint=(None, None), size=(400, 40))
+        change_background_button.bind(on_release=self.show_panel_background_image_file_chooser)
         background_button_layout.add_widget(change_background_button)
-        background_button_layout.add_widget(background_icon)
+        clear_background_button = GrayButton(text='[b]X[/b]', markup=True, size_hint=(None, None), size=(40, 40), background_color=(1, 0, 0, 1))
+        clear_background_button.bind(on_release=self.clear_panel_background_image)
+        background_button_layout.add_widget(clear_background_button)
         
+        # Canvas size
+        canvas_size_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=5)
+        canvas_size_label = Label(text='Canvas Size', size_hint_x=None, width=170, color="black")
+        canvas_size_layout.add_widget(canvas_size_label)
+        canvas_size_layout.add_widget(BoxLayout(size_hint_x=None, width=30))
+        canvas_size_x_label = Label(text='[b]X:[/b]', markup=True, size_hint_x=None, width=50, color="black")
+        canvas_size_layout.add_widget(canvas_size_x_label)
+        self.canvas_size_x_input = TextInput(text='500', size_hint_x=None, width=150, size_hint_y=None, height=50)
+        self.canvas_size_x_input.bind(text=lambda instance, value: self.update_canvas_size())
+        canvas_size_layout.add_widget(self.canvas_size_x_input)
+        canvas_size_layout.add_widget(BoxLayout(size_hint_x=None, width=20))
+        canvas_size_y_label = Label(text='[b]Y:[/b]', markup=True, size_hint_x=None, width=50, color="black")
+        canvas_size_layout.add_widget(canvas_size_y_label)
+        self.canvas_size_y_input = TextInput(text='500', size_hint_x=None, width=150, size_hint_y=None, height=50)
+        self.canvas_size_y_input.bind(text=lambda instance, value: self.update_canvas_size())
+        canvas_size_layout.add_widget(self.canvas_size_y_input)
+        canvas_size_layout.add_widget(BoxLayout())
+
         # Bottom Text Inputs with Titles
         bottom_text_inputs = BoxLayout(orientation='horizontal', size_hint=(1, 0.4), spacing=10)
         title_section = BoxLayout(orientation='vertical')
-        title_label = BlueButton(text='Title', height=30)
+        title_label = BlueButton(text='Title', size_hint=(None, None), size=(150, 40), font_size=30)
         title_input = TextInput()
         title_section.add_widget(title_label)
         title_section.add_widget(title_input)
         
         subtitle_section = BoxLayout(orientation='vertical')
-        subtitle_label = BlueButton(text='Subtitle', height=30)
+        subtitle_label = BlueButton(text='Subtitle', size_hint=(None, None), size=(150, 40), font_size=30)
         subtitle_input = TextInput()
         subtitle_section.add_widget(subtitle_label)
         subtitle_section.add_widget(subtitle_input)
@@ -79,8 +115,9 @@ class LayoutCreationWidget(BoxLayout):
         export_button_layout.add_widget(export_button)
         
         # Add to center section
-        center_section.add_widget(background_image)
+        center_section.add_widget(preview_container_wrapper)
         center_section.add_widget(background_button_layout)
+        center_section.add_widget(canvas_size_layout)
         center_section.add_widget(bottom_text_inputs)
         center_section.add_widget(export_button_layout)
         
@@ -88,60 +125,43 @@ class LayoutCreationWidget(BoxLayout):
         self.add_widget(left_section)
         self.add_widget(center_section)
 
+    def update_canvas_size(self):
+        try:
+            x = int(self.canvas_size_x_input.text)
+            y = int(self.canvas_size_y_input.text)
+        except ValueError:
+            print("Only integers allowed as canvas size")
+            return
+        self.panel_background_image_widget.size = (x, y)
+        
+
     def open_export_popup(self, instance):
         export_widget = ExportWidget(popup_size_hint=(0.9, 0.9))
         popup = Popup(title='Export', content=export_widget, size_hint=(0.9, 0.9))
         export_widget.bind(on_saving_done=popup.dismiss)
-        popup.bind(on_dismiss=self.close_export_popup)
+        popup.bind(on_dismiss=self.revert_to_original_window_size_after_popup_dismiss)
         popup.open()
 
-    def close_export_popup(self, instance):
-        Window.size=(800, 600)
-        
+    def revert_to_original_window_size_after_popup_dismiss(self, instance):
+        Window.size=(800, 600)#TODO: save actual window size before opening a popup and then restore this state afterwards
 
-"""
-import os
-from kivy.core.window import Window
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.textinput import TextInput
-from kivy.uix.label import Label
-from kivy.uix.switch import Switch
-from kivy.uix.filechooser import FileChooserIconView
-from kivy.uix.popup import Popup
-from kivy.uix.scrollview import ScrollView
+    def clear_panel_background_image(self, instance):
+        self.panel_background_image = ""
 
-from gui.Button import BlueButton, LabelButton
-
-class LayoutCreationWidget(BoxLayout):
-    def __init__(self, **kwargs):
-        self._set_fixed_window_size()
-        super().__init__(orientation='vertical', padding=40, spacing=50, **kwargs)
-        self.pos_hint = {'top': 1, 'x': 0}
-    
-    def _set_fixed_window_size(self, size_x=600, size_y=180):
-        Window.size = (size_x, size_y)
-        Window.minimum_width = size_x
-        Window.minimum_height = size_y
-        Window.maximum_width = size_x
-        Window.maximum_height = size_y
-        Window.resizable = False
-
-    def show_file_chooser(self, instance):
-        self._set_fixed_window_size(700, 500)
+    def show_panel_background_image_file_chooser(self, instance):
         # Popup for file selection
         filechooser = FileChooserIconView()
-        filechooser.filters = []
+        filechooser.filters = ["*.jpg", "*.jpeg", "*.png"]
         filechooser.path = str(os.path.expanduser('~'))
         popup_layout = BoxLayout(orientation='vertical')
-        popup = Popup(title='Choose File', content=popup_layout, size_hint=(0.9, 0.9))
-        popup.bind(on_dismiss=lambda instance: self._set_fixed_window_size())
+        popup = Popup(title='Choose Background Image', content=popup_layout, size_hint=(0.9, 0.9))
+        popup.bind(on_dismiss=self.revert_to_original_window_size_after_popup_dismiss)
         
         # Add select button
         select_button = BlueButton(text='Select')
         def select_file(_):
             if filechooser.selection:
-                self.file_input.text = os.path.basename(filechooser.selection[0])
-                self.file_input.cursor = (0, 0)
+                self.panel_background_image = filechooser.selection[0]
             popup.dismiss()
         select_button.bind(on_release=select_file)
 
@@ -190,7 +210,8 @@ class LayoutCreationWidget(BoxLayout):
         update_breadcrumbs()
         popup.open()
 
-    def on_save(self, instance):
-        print(f"File: {self.file_input.text}")
-        print(f"Double Sided: {'ON' if self.switch.active else 'OFF'}")
-"""
+    def update_panel_background_image(self, instance, value):
+        print(f"New panel background image is located at \"{value}\"")
+        self.panel_background_image_widget.source = value
+        #TODO: adjust the background image in the preview
+
