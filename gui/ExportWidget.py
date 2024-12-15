@@ -64,7 +64,6 @@ class ExportWidget(BoxLayout, EventDispatcher):
         if None is not self.popup_size_hint:
             size_x = (1 + (1 - self.popup_size_hint[0])*2) * size_x
             size_y = (1 + (1 - self.popup_size_hint[1])*2) * size_y + 70
-            print(size_y)
         Window.size = (size_x, size_y)
         Window.minimum_width = size_x
         Window.minimum_height = size_y
@@ -86,7 +85,7 @@ class ExportWidget(BoxLayout, EventDispatcher):
         select_button = BlueButton(text='Select')
         def select_file(_):
             self.file_input.text = filechooser.path
-            self.file_input.cursor = (0, len(filechooser.path))
+            self.file_input.cursor = (0, len(self.file_input.text))
             popup.dismiss()
         select_button.bind(on_release=select_file)
 

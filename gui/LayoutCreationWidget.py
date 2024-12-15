@@ -4,7 +4,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.stencilview import StencilView
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from kivy.uix.image import Image
@@ -12,6 +11,8 @@ from kivy.uix.popup import Popup
 from kivy.properties import StringProperty
 from kivy.uix.filechooser import FileChooserIconView
 
+from gui.EditTitlesWidget import EditTitlesWidget
+from gui.LoadedTitleWidget import LoadedTitleWidget
 from gui.ExportWidget import ExportWidget
 from gui.Button import BlueButton, GrayButton, LabelButton
 from gui.Line import HorizontalLine
@@ -21,36 +22,33 @@ class LayoutCreationWidget(BoxLayout):
     panel_background_image = StringProperty("")
 
     def __init__(self, **kwargs):
-        super().__init__(orientation='horizontal', spacing=10, padding=10, **kwargs)
+        super().__init__(**kwargs)
+        self.orientation = kwargs.get('orientation', 'horizontal')
+        self.spacing = kwargs.get('spacing', 10)
+        self.padding = kwargs.get('padding', 10)
 
         self.bind(panel_background_image=self.update_panel_background_image)
         
         # Left Section: Loaded Names with ScrollView
         left_section = BoxLayout(orientation='vertical', size_hint=(0.3, 1), spacing=10)
-        loaded_names_label = Label(text='[b]Loaded Names[/b]', markup=True, color="black", size_hint_y=None, height=30)
+        loaded_titles_label = Label(text='[b]Loaded Names[/b]', markup=True, color="black", size_hint_y=None, height=30)
         
         scroll_view = ScrollView(size_hint=(1, 1))
-        self.loaded_names_list = GridLayout(cols=1, size_hint_y=None, spacing=5, width=scroll_view.width)
-        self.loaded_names_list.bind(minimum_height=self.loaded_names_list.setter('height'))
+        self.loaded_titles_list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=5)
+        self.loaded_titles_list_layout.bind(minimum_height=self.loaded_titles_list_layout.setter('height'))
         
-        # Add placeholder sections to the list
-        for i in range(1, 100):
-            #TODO: add boxlayout instead and insert the label there followed by another boxlayout as horizontal spacer
-            section_label_wrapper = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
-            section_label = Label(text=f'Section {i}', color="black")
-            section_label_wrapper.add_widget(section_label)
-            section_label_wrapper.add_widget(BoxLayout())
-            self.loaded_names_list.add_widget(section_label_wrapper)
+        self.update_loaded_titles_list()
         
-        scroll_view.add_widget(self.loaded_names_list)
+        scroll_view.add_widget(self.loaded_titles_list_layout)
         
-        edit_names_button = BlueButton(text='Edit names', size_hint=(1, None))
+        edit_titles_button = BlueButton(text='Edit Titles', size_hint=(1, None))
+        edit_titles_button.bind(on_release=self.open_edit_titles_popup)
         
-        left_section.add_widget(loaded_names_label)
+        left_section.add_widget(loaded_titles_label)
         left_section.add_widget(HorizontalLine())
         left_section.add_widget(scroll_view)
         left_section.add_widget(HorizontalLine())
-        left_section.add_widget(edit_names_button)
+        left_section.add_widget(edit_titles_button)
         
         # Center Section: Background Image & Change Background Button
         center_section = BoxLayout(orientation='vertical', size_hint=(0.7, 1), spacing=10)
@@ -59,7 +57,7 @@ class LayoutCreationWidget(BoxLayout):
         preview_container_wrapper = ScrollView(size_hint=(1, 0.6))
         preview_container = FloatLayout()
         preview_container_wrapper.add_widget(preview_container)
-        self.panel_background_image_widget = Image(source=self.panel_background_image, size_hint=(None, None), size=(500, 500), pos_hint={'center_x': 0.5, 'center_y': 0.5}, allow_stretch=True, keep_ratio=True)
+        self.panel_background_image_widget = Image(source=self.panel_background_image, size_hint=(None, None), size=(500, 300), pos_hint={'center_x': 0.5, 'center_y': 0.5}, allow_stretch=True, keep_ratio=True)
         preview_container.add_widget(self.panel_background_image_widget)
         
         # Change Background Button
@@ -79,13 +77,13 @@ class LayoutCreationWidget(BoxLayout):
         canvas_size_layout.add_widget(BoxLayout(size_hint_x=None, width=30))
         canvas_size_x_label = Label(text='[b]X:[/b]', markup=True, size_hint_x=None, width=50, color="black")
         canvas_size_layout.add_widget(canvas_size_x_label)
-        self.canvas_size_x_input = TextInput(text='500', size_hint_x=None, width=150, size_hint_y=None, height=50)
+        self.canvas_size_x_input = TextInput(text=str(self.panel_background_image_widget.width), size_hint_x=None, width=150, size_hint_y=None, height=50)
         self.canvas_size_x_input.bind(text=lambda instance, value: self.update_canvas_size())
         canvas_size_layout.add_widget(self.canvas_size_x_input)
         canvas_size_layout.add_widget(BoxLayout(size_hint_x=None, width=20))
         canvas_size_y_label = Label(text='[b]Y:[/b]', markup=True, size_hint_x=None, width=50, color="black")
         canvas_size_layout.add_widget(canvas_size_y_label)
-        self.canvas_size_y_input = TextInput(text='500', size_hint_x=None, width=150, size_hint_y=None, height=50)
+        self.canvas_size_y_input = TextInput(text=str(self.panel_background_image_widget.height), size_hint_x=None, width=150, size_hint_y=None, height=50)
         self.canvas_size_y_input.bind(text=lambda instance, value: self.update_canvas_size())
         canvas_size_layout.add_widget(self.canvas_size_y_input)
         canvas_size_layout.add_widget(BoxLayout())
@@ -125,6 +123,20 @@ class LayoutCreationWidget(BoxLayout):
         self.add_widget(left_section)
         self.add_widget(center_section)
 
+    def update_loaded_titles_list(self, loaded_titles_list=[]):
+        # Clear previous titles
+        self.loaded_titles_list_layout.clear_widgets()
+
+        # Add placeholder titles
+        if [] == loaded_titles_list:
+            section_label_wrapper = LoadedTitleWidget(f"Placeholder Title", f"Some Subtitle")
+            self.loaded_titles_list_layout.add_widget(section_label_wrapper)
+        
+        # Add all loaded titles
+        for loaded_title_data in loaded_titles_list:
+            section_label_wrapper = LoadedTitleWidget(loaded_title_data.title, loaded_title_data.subtitle)
+            self.loaded_titles_list_layout.add_widget(section_label_wrapper)
+
     def update_canvas_size(self):
         try:
             x = int(self.canvas_size_x_input.text)
@@ -134,6 +146,17 @@ class LayoutCreationWidget(BoxLayout):
             return
         self.panel_background_image_widget.size = (x, y)
         
+    def open_edit_titles_popup(self, instance):
+        edit_titles_widget = EditTitlesWidget(popup_size_hint=(0.9, 0.9))
+        popup = Popup(title='Edit Titles', content=edit_titles_widget, size_hint=(0.9, 0.9))
+
+        def load_new_titles(popup, new_titles_list):
+            self.update_loaded_titles_list(new_titles_list)
+            popup.dismiss()
+
+        edit_titles_widget.bind(on_loading_done=lambda instance, new_titles_list, passed_popup=popup: load_new_titles(passed_popup, new_titles_list))
+        popup.bind(on_dismiss=self.revert_to_original_window_size_after_popup_dismiss)
+        popup.open()
 
     def open_export_popup(self, instance):
         export_widget = ExportWidget(popup_size_hint=(0.9, 0.9))
