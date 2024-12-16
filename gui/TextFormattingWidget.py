@@ -1,3 +1,4 @@
+from matplotlib import font_manager
 from random import random
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
@@ -27,11 +28,25 @@ class TextFormattingWidget(BoxLayout):
         # Font Family
         font_family_label = AlignLabel(text='Font Family', size_hint_x=None, width=label_width, halign='left', valign='middle', color="black")
         font_family_label.bind(size=font_family_label.setter('text_size'))
+
+        # Get all fonts on the system
+        font_list = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
+        font_dict = {}
+        for font_path in font_list:
+            try:
+                font = font_manager.FontProperties(fname=font_path)
+                font_dict[font.get_name()] = font
+            except:
+                continue
+        font_dict = dict(sorted(font_dict.items()))
+
         font_family_spinner = Spinner(
-            text='Option 1',
-            values=['Option 1', 'Option 2', 'Option 3'],
-            size_hint=(None, None), size=(200, 40)
+            text='Choose font ->',
+            values=font_dict.keys(),
+            size_hint=(None, None), size=(230, 40)
         )
+        font_family_spinner.text_size = (font_family_spinner.width-20, font_family_spinner.height)
+
         grid_layout.add_widget(font_family_label)
         grid_layout.add_widget(font_family_spinner)
 
