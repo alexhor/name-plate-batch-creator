@@ -31,7 +31,7 @@ class ExportWidget(BoxLayout, EventDispatcher):
 
         # Output file name
         output_file_name_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40, spacing=5)
-        output_file_name_label = Label(text='Output file name', valign='middle', color=(0/255, 0/255, 0/255, 1), size_hint=(None, None), width=250, height=80)
+        output_file_name_label = Label(text='Output file name', valign='middle', color="white", size_hint=(None, None), width=250, height=80)
         self.output_file_input = TextInput(text='NamePlateBatch.pdf', size_hint_y=None, height=80, font_size=30, padding_y=20, padding_x=10)
         output_file_name_layout.add_widget(output_file_name_label)
         output_file_name_layout.add_widget(self.output_file_input)
@@ -41,9 +41,9 @@ class ExportWidget(BoxLayout, EventDispatcher):
         left_aligned_layout = BoxLayout(orientation='horizontal', size_hint=(None, None), height=50, spacing=10)
         left_aligned_layout.pos_hint = {'x': 0}
         self.switch = Switch(active=True, size_hint_x=None, width=160)
-        switch_label = Label(text='Double sided', valign='middle', color=(0/255, 0/255, 0/255, 1), size_hint_x=None, width=200)
-        left_aligned_layout.add_widget(self.switch)
+        switch_label = Label(text='Double sided', valign='middle', color="white", size_hint_x=None, width=200)
         left_aligned_layout.add_widget(switch_label)
+        left_aligned_layout.add_widget(self.switch)
         double_sided_layout.add_widget(left_aligned_layout)
         
         # Save button

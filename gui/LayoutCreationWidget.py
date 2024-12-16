@@ -14,8 +14,9 @@ from kivy.uix.filechooser import FileChooserIconView
 from gui.EditTitlesWidget import EditTitlesWidget
 from gui.LoadedTitleWidget import LoadedTitleWidget
 from gui.ExportWidget import ExportWidget
+from gui.TextFormattingWidget import TextFormattingWidget
 from gui.Button import BlueButton, GrayButton, LabelButton
-from gui.Line import HorizontalLine
+from gui.Geometry import HorizontalLine, VerticalLine
 
 
 class LayoutCreationWidget(BoxLayout):
@@ -77,13 +78,13 @@ class LayoutCreationWidget(BoxLayout):
         canvas_size_layout.add_widget(BoxLayout(size_hint_x=None, width=30))
         canvas_size_x_label = Label(text='[b]X:[/b]', markup=True, size_hint_x=None, width=50, color="black")
         canvas_size_layout.add_widget(canvas_size_x_label)
-        self.canvas_size_x_input = TextInput(text=str(self.panel_background_image_widget.width), size_hint_x=None, width=150, size_hint_y=None, height=50)
+        self.canvas_size_x_input = TextInput(text=str(self.panel_background_image_widget.width), size_hint_x=None, width=150, size_hint_y=None, height=50, input_filter='int')
         self.canvas_size_x_input.bind(text=lambda instance, value: self.update_canvas_size())
         canvas_size_layout.add_widget(self.canvas_size_x_input)
         canvas_size_layout.add_widget(BoxLayout(size_hint_x=None, width=20))
         canvas_size_y_label = Label(text='[b]Y:[/b]', markup=True, size_hint_x=None, width=50, color="black")
         canvas_size_layout.add_widget(canvas_size_y_label)
-        self.canvas_size_y_input = TextInput(text=str(self.panel_background_image_widget.height), size_hint_x=None, width=150, size_hint_y=None, height=50)
+        self.canvas_size_y_input = TextInput(text=str(self.panel_background_image_widget.height), size_hint_x=None, width=150, size_hint_y=None, height=50, input_filter='int')
         self.canvas_size_y_input.bind(text=lambda instance, value: self.update_canvas_size())
         canvas_size_layout.add_widget(self.canvas_size_y_input)
         canvas_size_layout.add_widget(BoxLayout())
@@ -92,13 +93,14 @@ class LayoutCreationWidget(BoxLayout):
         bottom_text_inputs = BoxLayout(orientation='horizontal', size_hint=(1, 0.4), spacing=10)
         title_section = BoxLayout(orientation='vertical')
         title_label = BlueButton(text='Title', size_hint=(None, None), size=(150, 40), font_size=30)
-        title_input = TextInput()
+        title_input = TextFormattingWidget()
         title_section.add_widget(title_label)
         title_section.add_widget(title_input)
         
         subtitle_section = BoxLayout(orientation='vertical')
         subtitle_label = BlueButton(text='Subtitle', size_hint=(None, None), size=(150, 40), font_size=30)
-        subtitle_input = TextInput()
+        #subtitle_input = TextInput()
+        subtitle_input = TextFormattingWidget()
         subtitle_section.add_widget(subtitle_label)
         subtitle_section.add_widget(subtitle_input)
         
@@ -121,6 +123,7 @@ class LayoutCreationWidget(BoxLayout):
         
         # Add all sections to main layout
         self.add_widget(left_section)
+        self.add_widget(VerticalLine())
         self.add_widget(center_section)
 
     def update_loaded_titles_list(self, loaded_titles_list=[]):

@@ -60,8 +60,8 @@ class EditTitlesWidget(BoxLayout, EventDispatcher):
         self.add_widget(title_row_layout)
         self.title_row_switch = Switch(active=True, size_hint_x=None, width=160)
         switch_label = Label(text='File has title row', valign='middle', size_hint_x=None, width=300)
-        title_row_layout.add_widget(self.title_row_switch)
         title_row_layout.add_widget(switch_label)
+        title_row_layout.add_widget(self.title_row_switch)
         
         # Save button
         save_button_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
