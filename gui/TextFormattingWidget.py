@@ -12,13 +12,14 @@ from gui.Label import AlignLabel
 
 class TextFormattingWidget(BoxLayout):
     def __init__(self, **kwargs):
+        #TOOD: font color is missing
         super().__init__(**kwargs)
         self.orientation = kwargs.get('orientation', 'vertical')
         self.spacing = kwargs.get('spacing', 10)
         self.padding = kwargs.get('padding', 10)
 
         self.register_event_type('on_settings_updated')
-        self.text_formatting_values = TextFormattingValues()
+        self.text_formatting_values = TextFormattingValues(**kwargs)
 
         # Parameters
         label_width = 250
@@ -133,23 +134,23 @@ class TextFormattingWidget(BoxLayout):
         pass
 
     def _setting_updated(self, key, value):
-        print(value)
         self.text_formatting_values.set(key, value)
         self.dispatch('on_settings_updated', self.text_formatting_values)
 
 class TextFormattingValues:
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.__font_families_list = None
-        self.__font_family = font_manager.FontProperties().get_name()
-        self.__font_size = '100'
-        self.__bold = False
-        self.__italic = False
-        self.__underline = False
-        self.__strikethrough = False
-        self.__position_x = '100'
-        self.__position_y = '100'
-        self.__align = self.Align.left
-    #TODO: fill with default values at init
+        self.__font_family_path_mapping = {}
+        self.__font_family = kwargs.get('font_name', font_manager.FontProperties().get_name())
+        self.__font_size = str(kwargs.get('font_size', '40'))
+        self.__bold = kwargs.get('bold', False)
+        self.__italic = kwargs.get('italic', False)
+        self.__underline = kwargs.get('underline', False)
+        self.__strikethrough = kwargs.get('strikethrough', False)
+        pos = kwargs.get('pos', ('25', '160'))
+        self.__position_x = str(pos[0])
+        self.__position_y = str(pos[1])
+        self.__align = self.Align[kwargs.get('halign', self.Align.left.name)]
     
     @property
     def font_families_list(self):
@@ -160,12 +161,17 @@ class TextFormattingValues:
                 try:
                     font = font_manager.FontProperties(fname=font_path)
                     self.__font_families_list.append(font.get_name())
+                    self.__font_family_path_mapping[font.get_name()] = font_path
                 except:
                     continue
             self.__font_families_list.sort()
         return self.__font_families_list
 
 
+    @property
+    def font_family_file(self):
+        #return self.__font_family_path_mapping[self.font_family]
+        return font_manager.findfont(self.font_family)
     @property
     def font_family(self):
         return self.__font_family
@@ -180,6 +186,8 @@ class TextFormattingValues:
         return self.__font_size
     @font_size.setter
     def font_size(self, value):
+        if '' == value:
+            value = 0
         value = int(value) # This conversion will throw a ValueError itself
         if 0 > value:
             value = -1 * value
@@ -218,6 +226,8 @@ class TextFormattingValues:
         return self.__position_x
     @position_x.setter
     def position_x(self, value):
+        if '' == value:
+            value = 0
         value = int(value) # This conversion will throw a ValueError itself
         if 0 > value:
             value = -1 * value
@@ -228,6 +238,8 @@ class TextFormattingValues:
         return self.__position_y
     @position_y.setter
     def position_y(self, value):
+        if '' == value:
+            value = 0
         value = int(value) # This conversion will throw a ValueError itself
         if 0 > value:
             value = -1 * value

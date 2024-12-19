@@ -11,12 +11,14 @@ from kivy.uix.popup import Popup
 from kivy.properties import StringProperty
 from kivy.uix.filechooser import FileChooserIconView
 
+from gui.BackgroundImagePreviewWidget import BackgroundImagePreviewWidget
 from gui.EditTitlesWidget import EditTitlesWidget
 from gui.LoadedTitleWidget import LoadedTitleWidget
 from gui.ExportWidget import ExportWidget
 from gui.TextFormattingWidget import TextFormattingWidget
 from gui.Button import BlueButton, GrayButton, LabelButton
-from gui.Geometry import HorizontalLine, VerticalLine
+from gui.Geometry import HorizontalLine, VerticalLine, widget_add_border
+from gui.TextPreviewWidget import TextPreviewWidget
 
 
 class LayoutCreationWidget(BoxLayout):
@@ -53,13 +55,27 @@ class LayoutCreationWidget(BoxLayout):
         
         # Center Section: Background Image & Change Background Button
         center_section = BoxLayout(orientation='vertical', size_hint=(0.7, 1), spacing=10)
-        
-        # Background Image Placeholder
+        # Preview
         preview_container_wrapper = ScrollView(size_hint=(1, 0.6))
-        preview_container = FloatLayout()
-        preview_container_wrapper.add_widget(preview_container)
-        self.panel_background_image_widget = Image(source=self.panel_background_image, size_hint=(None, None), size=(500, 300), pos_hint={'center_x': 0.5, 'center_y': 0.5}, allow_stretch=True, keep_ratio=True)
-        preview_container.add_widget(self.panel_background_image_widget)
+        self.preview_container = FloatLayout(size_hint=(None, None), size=(500, 300), pos_hint={'center_x': 0.5, 'center_y': 0.5})
+        widget_add_border(self.preview_container)
+        preview_container_wrapper.add_widget(self.preview_container)
+        ## Background Image Preview
+        self.panel_background_image_widget = BackgroundImagePreviewWidget(source=self.panel_background_image)
+        self.preview_container.add_widget(self.panel_background_image_widget)
+        ## Title Preview
+        title_input = TextFormattingWidget()
+        title = self.loaded_titles_list_layout.children[0].title
+        title_preview = TextPreviewWidget(title_input.text_formatting_values, text=title)
+        self.preview_container.add_widget(title_preview)
+        title_input.bind(on_settings_updated=title_preview.update_text_formatting_values)
+        ## Subtitle Preview
+        subtitle = self.loaded_titles_list_layout.children[0].subtitle
+        subtitle_input = TextFormattingWidget(pos=(25, 110))
+        subtitle_preview = TextPreviewWidget(subtitle_input.text_formatting_values, text=subtitle)
+        self.preview_container.add_widget(subtitle_preview)
+        subtitle_input.bind(on_settings_updated=subtitle_preview.update_text_formatting_values)
+
         
         # Change Background Button
         background_button_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40, spacing=5)
@@ -87,19 +103,30 @@ class LayoutCreationWidget(BoxLayout):
         self.canvas_size_y_input = TextInput(text=str(self.panel_background_image_widget.height), size_hint_x=None, width=150, size_hint_y=None, height=50, input_filter='int')
         self.canvas_size_y_input.bind(text=lambda instance, value: self.update_canvas_size())
         canvas_size_layout.add_widget(self.canvas_size_y_input)
+
+        # Fit canvas to image
+        def fit_canvas_to_image(button):
+            image_width = self.panel_background_image_widget.image_width
+            print(image_width)
+            self.canvas_size_x_input.text = str(image_width)
+            image_height = self.panel_background_image_widget.image_height
+            self.canvas_size_y_input.text = str(image_height)
+        canvas_size_layout.add_widget(BlueButton(text="Fit to image", on_release=fit_canvas_to_image, size=(200,50)))
         canvas_size_layout.add_widget(BoxLayout())
+
+
+        # TODO: add a "fit canvas to image" button
+        # TODO: => maybe do this by default when background image is changed (add image and then resize one canvas axis to fit image)
 
         # Bottom Text Inputs with Titles
         bottom_text_inputs = BoxLayout(orientation='horizontal', size_hint=(1, 0.4), spacing=10)
         title_section = BoxLayout(orientation='vertical')
         title_label = BlueButton(text='Title', size_hint=(None, None), size=(150, 40), font_size=30)
-        title_input = TextFormattingWidget()
         title_section.add_widget(title_label)
         title_section.add_widget(title_input)
         
         subtitle_section = BoxLayout(orientation='vertical')
         subtitle_label = BlueButton(text='Subtitle', size_hint=(None, None), size=(150, 40), font_size=30)
-        #subtitle_input = TextInput()
         subtitle_input = TextFormattingWidget()
         subtitle_section.add_widget(subtitle_label)
         subtitle_section.add_widget(subtitle_input)
@@ -110,7 +137,10 @@ class LayoutCreationWidget(BoxLayout):
         # Export Button aligned right
         export_button_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=80)
         export_button = BlueButton(text='Export')
-        export_button.bind(on_release=self.open_export_popup)
+        #export_button.bind(on_release=self.open_export_popup)#
+        def testo(instance):
+            title_preview.text = "Hello World"
+        export_button.bind(on_release=testo)
         export_button_layout.add_widget(BoxLayout())  # Spacer to push Export to the right
         export_button_layout.add_widget(export_button)
         
@@ -147,6 +177,7 @@ class LayoutCreationWidget(BoxLayout):
         except ValueError:
             print("Only integers allowed as canvas size")
             return
+        self.preview_container.size = (x, y)
         self.panel_background_image_widget.size = (x, y)
         
     def open_edit_titles_popup(self, instance):
@@ -239,5 +270,3 @@ class LayoutCreationWidget(BoxLayout):
     def update_panel_background_image(self, instance, value):
         print(f"New panel background image is located at \"{value}\"")
         self.panel_background_image_widget.source = value
-        #TODO: adjust the background image in the preview
-
