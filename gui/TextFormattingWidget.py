@@ -6,6 +6,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
+from kivy.core.text import LabelBase
 
 from gui.Geometry import widget_add_border
 from gui.Label import AlignLabel
@@ -140,8 +141,7 @@ class TextFormattingWidget(BoxLayout):
 class TextFormattingValues:
     def __init__(self, **kwargs):
         self.__font_families_list = None
-        self.__font_family_path_mapping = {}
-        self.__font_family = kwargs.get('font_name', font_manager.FontProperties().get_name())
+        self.__font_family = kwargs.get('font_name', 'Arial')
         self.__font_size = str(kwargs.get('font_size', '40'))
         self.__bold = kwargs.get('bold', False)
         self.__italic = kwargs.get('italic', False)
@@ -155,23 +155,71 @@ class TextFormattingValues:
     @property
     def font_families_list(self):
         if None is self.__font_families_list:
+            font_family_path_mapping = {}
             font_list = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
-            self.__font_families_list = []
+            self.__font_families_list = set()
             for font_path in font_list:
                 try:
                     font = font_manager.FontProperties(fname=font_path)
-                    self.__font_families_list.append(font.get_name())
-                    self.__font_family_path_mapping[font.get_name()] = font_path
+                    font_family = font.get_name()
+                    self.__font_families_list.add(font_family)
+
+                    if font_family not in font_family_path_mapping:
+                        font_family_path_mapping[font_family] = {}
+
+                    # Find out what type of text decoration this font file brings with it
+                    font_file_stripped_name = font.get_file().split('/')[-1].lower()
+                    font_file_stripped_name = font_file_stripped_name.replace(font_family.replace(' ', ''), '')
+                    text_decorations = []
+                    if 'bold' in font_file_stripped_name:
+                        text_decorations.append('bold')
+                    if 'italic' in font_file_stripped_name:
+                        text_decorations.append('italic')
+                    font_file_type = '-'.join(text_decorations)
+                    if '' == font_file_type:
+                        font_file_type = 'regular'
+                    # Save font file
+                    font_family_path_mapping[font_family][font_file_type] = font_path
                 except:
                     continue
+            # Order font family path mapping
+            for font_family in self.__font_families_list:
+                if font_family == 'Robot':
+                    print('Robot')
+                path_mapping = font_family_path_mapping[font_family]
+                # No regular
+                if 'regular' not in path_mapping:
+                    print(f'Missing regular font for font family "{font_family}"')
+                    continue
+                # regular, bold, italic, bold-italic
+                elif 'bold' in path_mapping and 'italic' in path_mapping and 'bold-italic' in path_mapping:
+                    LabelBase.register(name=font_family, fn_regular=path_mapping['regular'], fn_bold=path_mapping['bold'], fn_italic=path_mapping['italic'], fn_bolditalic=path_mapping['bold-italic'])
+                # regular, bold, italic
+                elif 'bold' in path_mapping and 'italic' in path_mapping:
+                    LabelBase.register(name=font_family, fn_regular=path_mapping['regular'], fn_bold=path_mapping['bold'], fn_italic=path_mapping['italic'])
+                # regular, bold, bold-italic
+                elif 'bold' in path_mapping and 'bold-italic' in path_mapping:
+                    LabelBase.register(name=font_family, fn_regular=path_mapping['regular'], fn_bold=path_mapping['bold'], fn_bolditalic=path_mapping['bold-italic'])
+                # regular, bold
+                elif 'bold' in path_mapping:
+                    LabelBase.register(name=font_family, fn_regular=path_mapping['regular'], fn_bold=path_mapping['bold'])
+                # regular, italic, bold-italic
+                elif 'italic' in path_mapping and 'bold-italic' in path_mapping:
+                    LabelBase.register(name=font_family, fn_regular=path_mapping['regular'], fn_italic=path_mapping['italic'], fn_bolditalic=path_mapping['bold-italic'])
+                # regular, italic
+                elif 'italic' in path_mapping:
+                    LabelBase.register(name=font_family, fn_regular=path_mapping['regular'], fn_italic=path_mapping['italic'])
+                # regular, bold-italic
+                elif 'bold-italic' in path_mapping:
+                    LabelBase.register(name=font_family, fn_regular=path_mapping['regular'], fn_bolditalic=path_mapping['bold-italic'])
+                # regular
+                else:
+                    LabelBase.register(name=font_family, fn_regular=path_mapping['regular'])
+            # Order font families list
+            self.__font_families_list = list(self.__font_families_list)
             self.__font_families_list.sort()
         return self.__font_families_list
 
-
-    @property
-    def font_family_file(self):
-        #return self.__font_family_path_mapping[self.font_family]
-        return font_manager.findfont(self.font_family)
     @property
     def font_family(self):
         return self.__font_family

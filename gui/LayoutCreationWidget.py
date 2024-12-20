@@ -70,8 +70,8 @@ class LayoutCreationWidget(BoxLayout):
         self.preview_container.add_widget(title_preview)
         title_input.bind(on_settings_updated=title_preview.update_text_formatting_values)
         ## Subtitle Preview
-        subtitle = self.loaded_titles_list_layout.children[0].subtitle
         subtitle_input = TextFormattingWidget(pos=(25, 110))
+        subtitle = self.loaded_titles_list_layout.children[0].subtitle
         subtitle_preview = TextPreviewWidget(subtitle_input.text_formatting_values, text=subtitle)
         self.preview_container.add_widget(subtitle_preview)
         subtitle_input.bind(on_settings_updated=subtitle_preview.update_text_formatting_values)
@@ -127,7 +127,6 @@ class LayoutCreationWidget(BoxLayout):
         
         subtitle_section = BoxLayout(orientation='vertical')
         subtitle_label = BlueButton(text='Subtitle', size_hint=(None, None), size=(150, 40), font_size=30)
-        subtitle_input = TextFormattingWidget()
         subtitle_section.add_widget(subtitle_label)
         subtitle_section.add_widget(subtitle_input)
         

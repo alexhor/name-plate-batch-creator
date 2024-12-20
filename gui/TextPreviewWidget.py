@@ -18,14 +18,16 @@ class TextPreviewWidget(AlignLabel):
 
     def update_text_formatting_values(self, instance, text_formatting_values):
         self._text_formatting_values = text_formatting_values
-        
-        self.font_name = self._text_formatting_values.font_family_file
-        self.font_size = self._text_formatting_values.font_size
 
         self.bold = self._text_formatting_values.bold
         self.italic = self._text_formatting_values.italic
         self.underline = self._text_formatting_values.underline
         self.strikethrough = self._text_formatting_values.strikethrough
 
+        font_name = self._text_formatting_values.font_family
+        self.font_name = font_name
+        self.font_size = self._text_formatting_values.font_size
+
         self.halign = self._text_formatting_values.align.name
         self.pos = (self._text_formatting_values.position_x, self._text_formatting_values.position_y)
+        return
