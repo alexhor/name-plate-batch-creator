@@ -155,7 +155,7 @@ class TextFormattingValues:
     @property
     def font_families_list(self):
         if None is self.__font_families_list:
-            font_family_path_mapping = {}
+            self.__font_family_path_mapping = {}
             font_list = font_manager.findSystemFonts(fontpaths=None, fontext='ttf')
             self.__font_families_list = set()
             for font_path in font_list:
@@ -164,8 +164,8 @@ class TextFormattingValues:
                     font_family = font.get_name()
                     self.__font_families_list.add(font_family)
 
-                    if font_family not in font_family_path_mapping:
-                        font_family_path_mapping[font_family] = {}
+                    if font_family not in self.__font_family_path_mapping:
+                        self.__font_family_path_mapping[font_family] = {}
 
                     # Find out what type of text decoration this font file brings with it
                     font_file_stripped_name = font.get_file().split('/')[-1].lower()
@@ -179,14 +179,14 @@ class TextFormattingValues:
                     if '' == font_file_type:
                         font_file_type = 'regular'
                     # Save font file
-                    font_family_path_mapping[font_family][font_file_type] = font_path
+                    self.__font_family_path_mapping[font_family][font_file_type] = font_path
                 except:
                     continue
             # Order font family path mapping
             for font_family in self.__font_families_list:
                 if font_family == 'Robot':
                     print('Robot')
-                path_mapping = font_family_path_mapping[font_family]
+                path_mapping = self.__font_family_path_mapping[font_family]
                 # No regular
                 if 'regular' not in path_mapping:
                     print(f'Missing regular font for font family "{font_family}"')
@@ -219,6 +219,10 @@ class TextFormattingValues:
             self.__font_families_list = list(self.__font_families_list)
             self.__font_families_list.sort()
         return self.__font_families_list
+
+    @property
+    def font_family_path_mapping(self):
+        return self.__font_family_path_mapping[self.font_family]
 
     @property
     def font_family(self):
