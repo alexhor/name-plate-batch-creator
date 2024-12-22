@@ -158,37 +158,13 @@ class ExportWidget(BoxLayout, EventDispatcher):
         #pdf.setTitle(documentTitle)
 
         # Load title font
-        font_family_path_mapping = self._title_text_formatting_values.font_family_path_mapping
-        if self._title_text_formatting_values.bold and self._title_text_formatting_values.italic:
-            font_file = font_family_path_mapping['bold-italic']
-        elif self._title_text_formatting_values.bold:
-            font_file = font_family_path_mapping['bold']
-        elif self._title_text_formatting_values.italic:
-            font_file = font_family_path_mapping['italic']
-        else:
-            font_file = font_family_path_mapping['regular']
-        font_file_parts = font_file.split('/')
-        font_file_name = font_file_parts.pop()
-        font_path = '/'.join(font_file_parts)
-        reportlab.rl_config.TTFSearchPath.append(font_path)
-        pdfmetrics.registerFont(TTFont(self._title_text_formatting_values.font_family, font_file_name))
-        # Load subtitle font
-        font_family_path_mapping = self._subtitle_text_formatting_values.font_family_path_mapping
-        if self._subtitle_text_formatting_values.bold and self._subtitle_text_formatting_values.italic:
-            font_file = font_family_path_mapping['bold-italic']
-        elif self._subtitle_text_formatting_values.bold:
-            font_file = font_family_path_mapping['bold']
-        elif self._subtitle_text_formatting_values.italic:
-            font_file = font_family_path_mapping['italic']
-        else:
-            font_file = font_family_path_mapping['regular']
-        font_file_parts = font_file.split('/')
-        font_file_name = font_file_parts.pop()
-        font_path = '/'.join(font_file_parts)
-        reportlab.rl_config.TTFSearchPath.append(font_path)
-        # TODO: convert OTF to TTF before registering
-        pdfmetrics.registerFont(TTFont(self._subtitle_text_formatting_values.font_family, font_file_name))
+        self.__text_formatting_load_font(self._title_text_formatting_values)
+        self.__text_formatting_load_font(self._subtitle_text_formatting_values)
+
+
         offset = 550/1885
+
+        # TODO: add border around whole pdf page
 
         # TODO: make badge spacing adjustable in export widget
         spacing_x = 50
@@ -209,15 +185,7 @@ class ExportWidget(BoxLayout, EventDispatcher):
             batch_anchor_x = col * (canvas_size_x*offset + spacing_x*offset)
             batch_anchor_y = row * (canvas_size_y*offset + spacing_y*offset)
 
-            ## Background Image
-            if '' != self._background_image_source:
-                pdf.drawImage(self._background_image_source, batch_anchor_x, batch_anchor_y, width=self._background_image_size[0]*offset, height=self._background_image_size[1]*offset)
-            ## Title
-            pdf.setFont(self._title_text_formatting_values.font_family, int(self._title_text_formatting_values.font_size)*offset)
-            pdf.drawString(int(self._title_text_formatting_values.position_x)*offset+batch_anchor_x, int(self._title_text_formatting_values.position_y)*offset+batch_anchor_y, title_input.title)
-            ## Subtitle
-            pdf.setFont(self._subtitle_text_formatting_values.font_family, int(self._subtitle_text_formatting_values.font_size)*offset)
-            pdf.drawString(int(self._subtitle_text_formatting_values.position_x)*offset+batch_anchor_x, int(self._subtitle_text_formatting_values.position_y)*offset+batch_anchor_y, title_input.subtitle)
+            self.__draw_badge(pdf, self._background_image_source, self._background_image_size, title_input.title, title_input.subtitle, self._title_text_formatting_values, self._subtitle_text_formatting_values, (batch_anchor_x, batch_anchor_y), offset)
 
             ## Calculate next batch page, row and col
             col += 1
@@ -231,3 +199,20 @@ class ExportWidget(BoxLayout, EventDispatcher):
         pdf.save()
 
         self.dispatch('on_saving_done')
+
+    def __text_formatting_load_font(self, text_formatting_values):
+        reportlab.rl_config.TTFSearchPath.append(text_formatting_values.font_folder)
+        # TODO: convert OTF to TTF before registering
+        pdfmetrics.registerFont(TTFont(text_formatting_values.font_file_name, text_formatting_values.font_file_name))
+
+    def __draw_badge(self, pdf, background_image_source, background_image_size, title, subtitle, title_formatting_values, subtitle_formatting_values, anchor, offset):
+        batch_anchor_x, batch_anchor_y = anchor
+        ## Background Image
+        if '' != background_image_source:
+            pdf.drawImage(background_image_source, batch_anchor_x, batch_anchor_y, width=background_image_size[0]*offset, height=background_image_size[1]*offset)
+        ## Title
+        pdf.setFont(title_formatting_values.font_file_name, int(title_formatting_values.font_size)*offset)
+        pdf.drawString(int(title_formatting_values.position_x)*offset+batch_anchor_x, int(title_formatting_values.position_y)*offset+batch_anchor_y, title)
+        ## Subtitle
+        pdf.setFont(subtitle_formatting_values.font_file_name, int(subtitle_formatting_values.font_size)*offset)
+        pdf.drawString(int(subtitle_formatting_values.position_x)*offset+batch_anchor_x, int(subtitle_formatting_values.position_y)*offset+batch_anchor_y, subtitle)

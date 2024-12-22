@@ -221,8 +221,28 @@ class TextFormattingValues:
         return self.__font_families_list
 
     @property
-    def font_family_path_mapping(self):
-        return self.__font_family_path_mapping[self.font_family]
+    def font_file(self):
+        font_family_path_mapping = self.__font_family_path_mapping[self.font_family]
+        if self.bold and self.italic:
+            font_file = font_family_path_mapping['bold-italic']
+        elif self.bold:
+            font_file = font_family_path_mapping['bold']
+        elif self.italic:
+            font_file = font_family_path_mapping['italic']
+        else:
+            font_file = font_family_path_mapping['regular']
+        return font_file
+
+    @property
+    def font_file_name(self):
+        font_file_parts = self.font_file.split('/')
+        return font_file_parts.pop()
+
+    @property
+    def font_folder(self):
+        font_file_parts = self.font_file.split('/')
+        font_file_parts.pop()
+        return '/'.join(font_file_parts)
 
     @property
     def font_family(self):
