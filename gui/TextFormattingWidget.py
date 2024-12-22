@@ -184,8 +184,6 @@ class TextFormattingValues:
                     continue
             # Order font family path mapping
             for font_family in self.__font_families_list:
-                if font_family == 'Robot':
-                    print('Robot')
                 path_mapping = self.__font_family_path_mapping[font_family]
                 # No regular
                 if 'regular' not in path_mapping:

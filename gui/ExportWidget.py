@@ -61,6 +61,24 @@ class ExportWidget(BoxLayout, EventDispatcher):
         left_aligned_layout.add_widget(self.switch)
         self.add_widget(left_aligned_layout)
 
+        # Double sided offset
+        double_sided_offset_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=5)
+        self.add_widget(double_sided_offset_layout)
+        double_sided_offset_label = Label(text='Double sided offset', size_hint_x=None, width=200, color="black")
+        double_sided_offset_layout.add_widget(double_sided_offset_label)
+        double_sided_offset_layout.add_widget(BoxLayout(size_hint_x=None, width=30))
+        double_sided_offset_x_label = Label(text='[b]X:[/b]', markup=True, size_hint_x=None, width=50, color="black")
+        double_sided_offset_layout.add_widget(double_sided_offset_x_label)
+        self.double_sided_offset_x_input = TextInput(text='0', size_hint_x=None, width=150, size_hint_y=None, height=50, input_filter='int')
+        self.double_sided_offset_x_input.bind(text=lambda instance, value: self.update_double_sided_offset())
+        double_sided_offset_layout.add_widget(self.double_sided_offset_x_input)
+        double_sided_offset_layout.add_widget(BoxLayout(size_hint_x=None, width=20))
+        double_sided_offset_y_label = Label(text='[b]Y:[/b]', markup=True, size_hint_x=None, width=50, color="black")
+        double_sided_offset_layout.add_widget(double_sided_offset_y_label)
+        self.double_sided_offset_y_input = TextInput(text='0', size_hint_x=None, width=150, size_hint_y=None, height=50, input_filter='int')
+        self.double_sided_offset_y_input.bind(text=lambda instance, value: self.update_double_sided_offset())
+        double_sided_offset_layout.add_widget(self.double_sided_offset_y_input)
+
         # Save button
         save_button_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
         self.add_widget(save_button_layout)
@@ -149,9 +167,6 @@ class ExportWidget(BoxLayout, EventDispatcher):
         pass
 
     def on_save(self, instance):
-        print(f"File: {self.file_input.text}/{self.output_file_input.text}")
-        print(f"Double Sided: {'ON' if self.switch.active else 'OFF'}")
-
         pdf = canvas.Canvas(f"{self.file_input.text}/{self.output_file_input.text}")
         page_size = A4
         pdf.setPageSize(page_size)
@@ -173,11 +188,11 @@ class ExportWidget(BoxLayout, EventDispatcher):
         # Calculate maximum number of badges per page
         page_size_x, page_size_y = page_size
         canvas_size_x, canvas_size_y = self._canvas_size
-        max_batches_per_col = (page_size_x-canvas_size_x*offset) // (canvas_size_x*offset + spacing_x*offset) + 1
-        max_batches_per_row = (page_size_y-canvas_size_y*offset) // (canvas_size_y*offset + spacing_y*offset) + 1
+        max_batches_per_row = (page_size_x-canvas_size_x*offset) // (canvas_size_x*offset + spacing_x*offset) + 1
+        max_batches_per_col = (page_size_y-canvas_size_y*offset) // (canvas_size_y*offset + spacing_y*offset) + 1
 
         page = 0
-        row = max_batches_per_row - 1
+        row = max_batches_per_col - 1
         col = 0
         # Draw badges
         for title_input in self._loaded_titles_list:
@@ -189,16 +204,49 @@ class ExportWidget(BoxLayout, EventDispatcher):
 
             ## Calculate next batch page, row and col
             col += 1
-            if col == max_batches_per_col:
+            if col == max_batches_per_row:
                 col = 0
                 row -= 1
                 if 0 > row:
-                    row = max_batches_per_row - 1
-                    page += 1
+                    row = max_batches_per_col - 1
                     pdf.showPage()
+                    if self.switch.active:
+                        self.__draw_backside(pdf, page, max_batches_per_row, max_batches_per_col, offset, (spacing_x, spacing_y), page_size)
+                    page += 1
+        pdf.showPage()
+        # Draw the last double sided page
+        if self.switch.active:
+            self.__draw_backside(pdf, page, max_batches_per_row, max_batches_per_col, offset, (spacing_x, spacing_y), page_size)
         pdf.save()
-
         self.dispatch('on_saving_done')
+
+    def __draw_backside(self, pdf, page, max_batches_per_row, max_batches_per_col, offset, spacing, page_size):
+        canvas_size_x, canvas_size_y = self._canvas_size
+        page_size_x_mm, page_size_y_mm = page_size
+        spacing_x, spacing_y = spacing
+        batches_to_skip = int(page * max_batches_per_row * max_batches_per_col)
+        backside_offset_x = page_size_x_mm - (max_batches_per_row - 1) * (canvas_size_x*offset + spacing_x*offset) - canvas_size_x*offset + int(self.double_sided_offset_x_input.text)
+        backside_offset_y = int(self.double_sided_offset_y_input.text)
+
+        row = max_batches_per_col - 1
+        col = max_batches_per_row - 1
+
+        for i in range(batches_to_skip, batches_to_skip+int(max_batches_per_row * max_batches_per_col)):
+            batch_anchor_x = col * (canvas_size_x*offset + spacing_x*offset) + backside_offset_x
+            batch_anchor_y = row * (canvas_size_y*offset + spacing_y*offset) + backside_offset_y
+            if not (0 <= i < len(self._loaded_titles_list)):
+                break
+            title_input = self._loaded_titles_list[i]
+            self.__draw_badge(pdf, self._background_image_source, self._background_image_size, title_input.title, title_input.subtitle, self._title_text_formatting_values, self._subtitle_text_formatting_values, (batch_anchor_x, batch_anchor_y), offset)
+
+            ## Calculate next batch page, row and col
+            col -= 1
+            if 0 > col:
+                col = max_batches_per_row - 1
+                row -= 1
+                if 0 > row:
+                    row = max_batches_per_col - 1
+                    pdf.showPage()
 
     def __text_formatting_load_font(self, text_formatting_values):
         reportlab.rl_config.TTFSearchPath.append(text_formatting_values.font_folder)
