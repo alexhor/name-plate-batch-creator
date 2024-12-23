@@ -261,6 +261,8 @@ class ExportWidget(BoxLayout, EventDispatcher):
         ## Texts
         for i in range(len(text_formatting_values_list)):
             text_formatting_values = text_formatting_values_list[i]
+            if i >= len(text_list):
+                break
             text = text_list[i]
             pdf.setFont(text_formatting_values.font_file_name, int(text_formatting_values.font_size)*offset)
             pdf.drawString(int(text_formatting_values.position_x)*offset+batch_anchor_x, int(text_formatting_values.position_y)*offset+batch_anchor_y, text)
