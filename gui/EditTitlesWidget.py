@@ -37,24 +37,7 @@ class EditTitlesWidget(BoxLayout, EventDispatcher):
         csv_seperator_layout.add_widget(BoxLayout(size_hint_x=None, width=20))
         csv_seperator_layout.add_widget(self.csv_seperator_input)
         csv_seperator_layout.add_widget(BoxLayout())
-        ## Title column number
-        title_column_number_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
-        self.add_widget(title_column_number_layout)
-        title_column_number_label = Label(text="Title column number", size_hint_x=None, width=300)
-        self.title_column_number_input = TextInput(text="1", size_hint=(None, None), size=(50, 50), halign="center")
-        title_column_number_layout.add_widget(title_column_number_label)
-        title_column_number_layout.add_widget(BoxLayout(size_hint_x=None, width=20))
-        title_column_number_layout.add_widget(self.title_column_number_input)
-        title_column_number_layout.add_widget(BoxLayout())
-        ## Subtitle column number
-        subtitle_column_number_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50)
-        self.add_widget(subtitle_column_number_layout)
-        subtitle_column_number_label = Label(text="Subtitle column number", size_hint_x=None, width=300)
-        self.subtitle_column_number_input = TextInput(text="2", size_hint=(None, None), size=(50, 50), halign="center")
-        subtitle_column_number_layout.add_widget(subtitle_column_number_label)
-        subtitle_column_number_layout.add_widget(BoxLayout(size_hint_x=None, width=20))
-        subtitle_column_number_layout.add_widget(self.subtitle_column_number_input)
-        subtitle_column_number_layout.add_widget(BoxLayout())
+
         # Title row switch
         title_row_layout = BoxLayout(orientation='horizontal', size_hint=(None, None), height=50, spacing=10)
         self.add_widget(title_row_layout)
@@ -71,7 +54,7 @@ class EditTitlesWidget(BoxLayout, EventDispatcher):
         save_button_layout.add_widget(save_button)
         self.add_widget(save_button_layout)
 
-    def _set_fixed_window_size(self, size_x=600, size_y=200):
+    def _set_fixed_window_size(self, size_x=600, size_y=150):
         if None is not self.popup_size_hint:
             size_x = (1 + (1 - self.popup_size_hint[0])*2) * size_x
             size_y = (1 + (1 - self.popup_size_hint[1])*2) * size_y + 70
@@ -151,41 +134,22 @@ class EditTitlesWidget(BoxLayout, EventDispatcher):
         pass
 
     def on_loading(self, instance):
-        loaded_titles_list = []
-        # Parse (sub)title indexes
-        try:
-            title_index = int(self.title_column_number_input.text) - 1
-            subtitle_index = int(self.subtitle_column_number_input.text) - 1
-        except ValueError:
-            print("Invalid title or subtitle index")
-            return
+        loaded_texts_list = []
         # Read CSV file
         try:
             with open(self.file_input.text, mode='r') as file:
                 csv_reader = csv.reader(file, delimiter=self.csv_seperator_input.text)
         
-                i = 0
                 # Skip title row if this CSV has one
                 if self.title_row_switch.active:
                     next(csv_reader)
-                    i += 1
             
-                # Iterate through the titles
+                # Iterate through the texts
                 for row in csv_reader:
-                    i += 1
-                    try:
-                        loaded_titles_list.append(LoadedTitle(row[title_index], row[subtitle_index]))
-                    except IndexError:
-                        print("Index error on row", i)
-                        continue
+                    loaded_texts_list.append(row)
         except IOError:
             print("CSV file not readable")
             return
         
         # Dispatch save event with loaded titles list
-        self.dispatch('on_loading_done', loaded_titles_list)
-
-class LoadedTitle:
-    def __init__(self, title, subtitle):
-        self.title = title
-        self.subtitle = subtitle
+        self.dispatch('on_loading_done', loaded_texts_list)

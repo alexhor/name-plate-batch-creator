@@ -20,14 +20,13 @@ from gui.Button import BlueButton, GrayButton, LabelButton
 from gui.TextPreviewWidget import TextPreviewWidget
 
 class ExportWidget(BoxLayout, EventDispatcher):
-    def __init__(self, title_text_formatting_values, subtitle_text_formatting_values, background_image_source, canvas_size, background_image_size, loaded_titles_list, popup_size_hint=None, **kwargs):
+    def __init__(self, loaded_texts_list, text_formatting_values_list, background_image_source, canvas_size, background_image_size, popup_size_hint=None, **kwargs):
         self.register_event_type('on_saving_done')
-        self._title_text_formatting_values = title_text_formatting_values
-        self._subtitle_text_formatting_values = subtitle_text_formatting_values
+        self._loaded_texts_list = loaded_texts_list
+        self._text_formatting_values_list = text_formatting_values_list
         self._background_image_source = background_image_source
         self._canvas_size = canvas_size
         self._background_image_size = background_image_size
-        self._loaded_titles_list = loaded_titles_list
 
         self.popup_size_hint = popup_size_hint
         self._set_fixed_window_size()
@@ -64,16 +63,16 @@ class ExportWidget(BoxLayout, EventDispatcher):
         # Double sided offset
         double_sided_offset_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=5)
         self.add_widget(double_sided_offset_layout)
-        double_sided_offset_label = Label(text='Double sided offset', size_hint_x=None, width=200, color="black")
+        double_sided_offset_label = Label(text='Double sided offset', size_hint_x=None, width=200, color="white")
         double_sided_offset_layout.add_widget(double_sided_offset_label)
         double_sided_offset_layout.add_widget(BoxLayout(size_hint_x=None, width=30))
-        double_sided_offset_x_label = Label(text='[b]X:[/b]', markup=True, size_hint_x=None, width=50, color="black")
+        double_sided_offset_x_label = Label(text='[b]X:[/b]', markup=True, size_hint_x=None, width=50, color="white")
         double_sided_offset_layout.add_widget(double_sided_offset_x_label)
         self.double_sided_offset_x_input = TextInput(text='0', size_hint_x=None, width=150, size_hint_y=None, height=50, input_filter='int')
         self.double_sided_offset_x_input.bind(text=lambda instance, value: self.update_double_sided_offset())
         double_sided_offset_layout.add_widget(self.double_sided_offset_x_input)
         double_sided_offset_layout.add_widget(BoxLayout(size_hint_x=None, width=20))
-        double_sided_offset_y_label = Label(text='[b]Y:[/b]', markup=True, size_hint_x=None, width=50, color="black")
+        double_sided_offset_y_label = Label(text='[b]Y:[/b]', markup=True, size_hint_x=None, width=50, color="white")
         double_sided_offset_layout.add_widget(double_sided_offset_y_label)
         self.double_sided_offset_y_input = TextInput(text='0', size_hint_x=None, width=150, size_hint_y=None, height=50, input_filter='int')
         self.double_sided_offset_y_input.bind(text=lambda instance, value: self.update_double_sided_offset())
@@ -173,8 +172,8 @@ class ExportWidget(BoxLayout, EventDispatcher):
         #pdf.setTitle(documentTitle)
 
         # Load title font
-        self.__text_formatting_load_font(self._title_text_formatting_values)
-        self.__text_formatting_load_font(self._subtitle_text_formatting_values)
+        for text_formatting_values in self._text_formatting_values_list:
+            self.__text_formatting_load_font(text_formatting_values)
 
 
         offset = 550/1885
@@ -195,12 +194,13 @@ class ExportWidget(BoxLayout, EventDispatcher):
         row = max_batches_per_col - 1
         col = 0
         # Draw badges
-        for title_input in self._loaded_titles_list:
+        for i in range(len(self._loaded_texts_list)):
+            text_list = self._loaded_texts_list[i]
             ## Calculate batch anchor
             batch_anchor_x = col * (canvas_size_x*offset + spacing_x*offset)
             batch_anchor_y = row * (canvas_size_y*offset + spacing_y*offset)
 
-            self.__draw_badge(pdf, self._background_image_source, self._background_image_size, title_input.title, title_input.subtitle, self._title_text_formatting_values, self._subtitle_text_formatting_values, (batch_anchor_x, batch_anchor_y), offset)
+            self.__draw_badge(pdf, self._background_image_source, self._background_image_size, text_list, self._text_formatting_values_list, (batch_anchor_x, batch_anchor_y), offset)
 
             ## Calculate next batch page, row and col
             col += 1
@@ -234,10 +234,10 @@ class ExportWidget(BoxLayout, EventDispatcher):
         for i in range(batches_to_skip, batches_to_skip+int(max_batches_per_row * max_batches_per_col)):
             batch_anchor_x = col * (canvas_size_x*offset + spacing_x*offset) + backside_offset_x
             batch_anchor_y = row * (canvas_size_y*offset + spacing_y*offset) + backside_offset_y
-            if not (0 <= i < len(self._loaded_titles_list)):
+            if i >= len(self._loaded_texts_list):
                 break
-            title_input = self._loaded_titles_list[i]
-            self.__draw_badge(pdf, self._background_image_source, self._background_image_size, title_input.title, title_input.subtitle, self._title_text_formatting_values, self._subtitle_text_formatting_values, (batch_anchor_x, batch_anchor_y), offset)
+            text_list = self._loaded_texts_list[i]
+            self.__draw_badge(pdf, self._background_image_source, self._background_image_size, text_list, self._text_formatting_values_list, (batch_anchor_x, batch_anchor_y), offset)
 
             ## Calculate next batch page, row and col
             col -= 1
@@ -253,14 +253,14 @@ class ExportWidget(BoxLayout, EventDispatcher):
         # TODO: convert OTF to TTF before registering
         pdfmetrics.registerFont(TTFont(text_formatting_values.font_file_name, text_formatting_values.font_file_name))
 
-    def __draw_badge(self, pdf, background_image_source, background_image_size, title, subtitle, title_formatting_values, subtitle_formatting_values, anchor, offset):
+    def __draw_badge(self, pdf, background_image_source, background_image_size, text_list, text_formatting_values_list, anchor, offset):
         batch_anchor_x, batch_anchor_y = anchor
         ## Background Image
         if '' != background_image_source:
             pdf.drawImage(background_image_source, batch_anchor_x, batch_anchor_y, width=background_image_size[0]*offset, height=background_image_size[1]*offset)
-        ## Title
-        pdf.setFont(title_formatting_values.font_file_name, int(title_formatting_values.font_size)*offset)
-        pdf.drawString(int(title_formatting_values.position_x)*offset+batch_anchor_x, int(title_formatting_values.position_y)*offset+batch_anchor_y, title)
-        ## Subtitle
-        pdf.setFont(subtitle_formatting_values.font_file_name, int(subtitle_formatting_values.font_size)*offset)
-        pdf.drawString(int(subtitle_formatting_values.position_x)*offset+batch_anchor_x, int(subtitle_formatting_values.position_y)*offset+batch_anchor_y, subtitle)
+        ## Texts
+        for i in range(len(text_formatting_values_list)):
+            text_formatting_values = text_formatting_values_list[i]
+            text = text_list[i]
+            pdf.setFont(text_formatting_values.font_file_name, int(text_formatting_values.font_size)*offset)
+            pdf.drawString(int(text_formatting_values.position_x)*offset+batch_anchor_x, int(text_formatting_values.position_y)*offset+batch_anchor_y, text)

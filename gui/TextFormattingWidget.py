@@ -12,15 +12,21 @@ from gui.Geometry import widget_add_border
 from gui.Label import AlignLabel
 
 class TextFormattingWidget(BoxLayout):
-    def __init__(self, **kwargs):
+    def __init__(self, text_formatting_values=None, **kwargs):
         #TOOD: font color is missing
         super().__init__(**kwargs)
         self.orientation = kwargs.get('orientation', 'vertical')
         self.spacing = kwargs.get('spacing', 10)
         self.padding = kwargs.get('padding', 10)
+        self.size_hint_x = kwargs.get('size_hint_x', None)
+        #self.bind(minimum_width=self.setter('width'))
+        self.width = kwargs.get('width', 550)
 
         self.register_event_type('on_settings_updated')
-        self.text_formatting_values = TextFormattingValues(**kwargs)
+        if None is text_formatting_values:
+            self.text_formatting_values = TextFormattingValues()
+        else:
+            self.text_formatting_values = text_formatting_values
 
         # Parameters
         label_width = 250
@@ -298,9 +304,10 @@ class TextFormattingValues:
     def position_x(self, value):
         if '' == value:
             value = 0
-        value = int(value) # This conversion will throw a ValueError itself
-        if 0 > value:
-            value = -1 * value
+        try:
+            value = int(value)
+        except ValueError:
+            return
         self.__position_x = value
     
     @property
@@ -310,9 +317,10 @@ class TextFormattingValues:
     def position_y(self, value):
         if '' == value:
             value = 0
-        value = int(value) # This conversion will throw a ValueError itself
-        if 0 > value:
-            value = -1 * value
+        try:
+            value = int(value)
+        except ValueError:
+            return
         self.__position_y = value
 
     class Align(Enum):

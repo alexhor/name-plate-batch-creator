@@ -15,7 +15,7 @@ from gui.BackgroundImagePreviewWidget import BackgroundImagePreviewWidget
 from gui.EditTitlesWidget import EditTitlesWidget
 from gui.LoadedTitleWidget import LoadedTitleWidget
 from gui.ExportWidget import ExportWidget
-from gui.TextFormattingWidget import TextFormattingWidget
+from gui.TextFormattingWidget import TextFormattingValues, TextFormattingWidget
 from gui.Button import BlueButton, GrayButton, LabelButton
 from gui.Geometry import HorizontalLine, VerticalLine, widget_add_border
 from gui.TextPreviewWidget import TextPreviewWidget
@@ -29,12 +29,15 @@ class LayoutCreationWidget(BoxLayout):
         self.orientation = kwargs.get('orientation', 'horizontal')
         self.spacing = kwargs.get('spacing', 10)
         self.padding = kwargs.get('padding', 10)
+        self._text_previews_count = 3#TODO: make adjustable via GUI
+        self._text_input_list = []
+        self._text_preview_list = []
 
         self.bind(panel_background_image=self.update_panel_background_image)
         
         # Left Section: Loaded Names with ScrollView
         left_section = BoxLayout(orientation='vertical', size_hint=(0.3, 1), spacing=10)
-        loaded_titles_label = Label(text='[b]Loaded Names[/b]', markup=True, color="black", size_hint_y=None, height=30)
+        loaded_titles_label = Label(text='[b]Loaded Texts[/b]', markup=True, color="black", size_hint_y=None, height=30)
         
         scroll_view = ScrollView(size_hint=(1, 1))
         self.loaded_titles_list_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=5)
@@ -63,18 +66,16 @@ class LayoutCreationWidget(BoxLayout):
         ## Background Image Preview
         self.panel_background_image_widget = BackgroundImagePreviewWidget(source=self.panel_background_image)
         self.preview_container.add_widget(self.panel_background_image_widget)
-        ## Title Preview
-        self.title_input = TextFormattingWidget()
-        title = self.loaded_titles_list_layout.children[0].title
-        title_preview = TextPreviewWidget(self.title_input.text_formatting_values, text=title)
-        self.preview_container.add_widget(title_preview)
-        self.title_input.bind(on_settings_updated=title_preview.update_text_formatting_values)
-        ## Subtitle Preview
-        self.subtitle_input = TextFormattingWidget(pos=(25, 110))
-        subtitle = self.loaded_titles_list_layout.children[0].subtitle
-        subtitle_preview = TextPreviewWidget(self.subtitle_input.text_formatting_values, text=subtitle)
-        self.preview_container.add_widget(subtitle_preview)
-        self.subtitle_input.bind(on_settings_updated=subtitle_preview.update_text_formatting_values)
+
+        ## Text previews
+        for i in range(self._text_previews_count):
+            text_formatting_input = TextFormattingWidget(TextFormattingValues(pos=(25, int(50*i))))
+            self._text_input_list.append(text_formatting_input)
+            text = self.loaded_titles_list_layout.children[0].get_text(i)
+            text_preview = TextPreviewWidget(text_formatting_input.text_formatting_values, text=text)
+            self._text_preview_list.append(text_preview)
+            self.preview_container.add_widget(text_preview)
+            text_formatting_input.bind(on_settings_updated=text_preview.update_text_formatting_values)
 
         # Change Background Button
         background_button_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40, spacing=5)
@@ -113,20 +114,19 @@ class LayoutCreationWidget(BoxLayout):
         canvas_size_layout.add_widget(BlueButton(text="Fit to image", on_release=fit_canvas_to_image, size=(200,50)))
         canvas_size_layout.add_widget(BoxLayout())
 
-        # Bottom Text Inputs with Titles
-        bottom_text_inputs = BoxLayout(orientation='horizontal', size_hint=(1, 0.4), spacing=10)
-        title_section = BoxLayout(orientation='vertical')
-        title_label = BlueButton(text='Title', size_hint=(None, None), size=(150, 40), font_size=30)
-        title_section.add_widget(title_label)
-        title_section.add_widget(self.title_input)
-        
-        subtitle_section = BoxLayout(orientation='vertical')
-        subtitle_label = BlueButton(text='Subtitle', size_hint=(None, None), size=(150, 40), font_size=30)
-        subtitle_section.add_widget(subtitle_label)
-        subtitle_section.add_widget(self.subtitle_input)
-        
-        bottom_text_inputs.add_widget(title_section)
-        bottom_text_inputs.add_widget(subtitle_section)
+        # Text formatting section
+        text_formatting_scroll = ScrollView(size_hint=(1, 0.4))
+        text_formatting_wrapper = BoxLayout(orientation='horizontal', spacing=100)
+        text_formatting_wrapper.bind(minimum_width=text_formatting_wrapper.setter('width'))
+        text_formatting_scroll.add_widget(text_formatting_wrapper)
+        for i in range(self._text_previews_count):
+            text_formatting_section = BoxLayout(orientation='vertical')
+            text_formatting_section.bind(minimum_width=text_formatting_section.setter('width'))
+            text_formatting_section_label = BlueButton(text=f'Text {i}', size_hint=(None, None), size=(150, 40), font_size=30)
+            text_formatting_section.add_widget(text_formatting_section_label)
+            text_formatting_section.add_widget(self._text_input_list[i])
+
+            text_formatting_wrapper.add_widget(text_formatting_section)
         
         # Export Button
         export_button_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=80)
@@ -139,7 +139,7 @@ class LayoutCreationWidget(BoxLayout):
         center_section.add_widget(preview_container_wrapper)
         center_section.add_widget(background_button_layout)
         center_section.add_widget(canvas_size_layout)
-        center_section.add_widget(bottom_text_inputs)
+        center_section.add_widget(text_formatting_scroll)
         center_section.add_widget(export_button_layout)
         
         # Add all sections to main layout
@@ -154,14 +154,20 @@ class LayoutCreationWidget(BoxLayout):
 
         # Add placeholder titles
         if [] == loaded_titles_list:
-            section_label_wrapper = LoadedTitleWidget(f"Placeholder Title", f"Some Subtitle")
-            self._loaded_titles_list.append(section_label_wrapper)
-            self.loaded_titles_list_layout.add_widget(section_label_wrapper)
+            self._loaded_titles_list.append([f"Placeholder Title", f"Some Subtitle"])
         
         # Add all loaded titles
-        for loaded_title_data in loaded_titles_list:
-            section_label_wrapper = LoadedTitleWidget(loaded_title_data.title, loaded_title_data.subtitle)
+        for loaded_title_data in self._loaded_titles_list:
+            section_label_wrapper = LoadedTitleWidget(loaded_title_data)
             self.loaded_titles_list_layout.add_widget(section_label_wrapper)
+
+        # Update preview
+        preview_text_list = self._loaded_titles_list[0]
+        for i in range(self._text_previews_count):
+            if i >= len(self._text_preview_list) or i >= len(preview_text_list):
+                break
+            text_preview = self._text_preview_list[i]
+            text_preview.text = preview_text_list[i]
 
     def update_canvas_size(self):
         try:
@@ -186,7 +192,10 @@ class LayoutCreationWidget(BoxLayout):
         popup.open()
 
     def open_export_popup(self, instance):
-        export_widget = ExportWidget(self.title_input.text_formatting_values, self.subtitle_input.text_formatting_values, self.panel_background_image, (int(self.canvas_size_x_input.text), int(self.canvas_size_y_input.text)), (self.panel_background_image_widget.width, self.panel_background_image_widget.height), self._loaded_titles_list, popup_size_hint=(0.9, 0.9))
+        text_formatting_values_list = []
+        for text_input in self._text_input_list:
+            text_formatting_values_list.append(text_input.text_formatting_values)
+        export_widget = ExportWidget(self._loaded_titles_list, text_formatting_values_list, self.panel_background_image, (int(self.canvas_size_x_input.text), int(self.canvas_size_y_input.text)), (self.panel_background_image_widget.width, self.panel_background_image_widget.height), popup_size_hint=(0.9, 0.9))
         popup = Popup(title='Export', content=export_widget, size_hint=(0.9, 0.9))
         export_widget.bind(on_saving_done=popup.dismiss)
         popup.bind(on_dismiss=self.revert_to_original_window_size_after_popup_dismiss)
