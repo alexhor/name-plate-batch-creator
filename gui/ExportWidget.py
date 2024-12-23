@@ -17,6 +17,7 @@ from reportlab.lib.pagesizes import landscape, portrait, A4
 
 from gui.BackgroundImagePreviewWidget import BackgroundImagePreviewWidget
 from gui.Button import BlueButton, GrayButton, LabelButton
+from gui.TextFormattingWidget import TextFormattingValues
 from gui.TextPreviewWidget import TextPreviewWidget
 
 class ExportWidget(BoxLayout, EventDispatcher):
@@ -254,6 +255,7 @@ class ExportWidget(BoxLayout, EventDispatcher):
         pdfmetrics.registerFont(TTFont(text_formatting_values.font_file_name, text_formatting_values.font_file_name))
 
     def __draw_badge(self, pdf, background_image_source, background_image_size, text_list, text_formatting_values_list, anchor, offset):
+        canvas_size_x, canvas_size_y = self._canvas_size
         batch_anchor_x, batch_anchor_y = anchor
         ## Background Image
         if '' != background_image_source:
@@ -265,4 +267,15 @@ class ExportWidget(BoxLayout, EventDispatcher):
                 break
             text = text_list[i]
             pdf.setFont(text_formatting_values.font_file_name, int(text_formatting_values.font_size)*offset)
-            pdf.drawString(int(text_formatting_values.position_x)*offset+batch_anchor_x, int(text_formatting_values.position_y)*offset+batch_anchor_y, text)
+            ### Calc position
+            x = int(text_formatting_values.position_x)*offset+batch_anchor_x
+            y = int(text_formatting_values.position_y)*offset+batch_anchor_y
+
+            ### Draw text according to align
+            if TextFormattingValues.Align.left == text_formatting_values.align:
+                pdf.drawString(x, y, text)
+            elif TextFormattingValues.Align.center == text_formatting_values.align:
+                pdf.drawCentredString(x + (canvas_size_x/2)*offset, y, text)
+            elif TextFormattingValues.Align.right == text_formatting_values.align:
+                pdf.drawRightString(x + canvas_size_x*offset, y, text)
+            #TODO: text formattings missing: underline, strikethrough
